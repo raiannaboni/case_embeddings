@@ -1,0 +1,8 @@
+pandas
+PyYAML
+openai
+sentence-transformers
+torch
+torchaudio
+torchvision
+tqdm
