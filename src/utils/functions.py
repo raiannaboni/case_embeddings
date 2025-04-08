@@ -7,7 +7,6 @@ from gensim.models import FastText
 from nltk.tokenize import word_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import fuzz
-from tqdm.notebook import tqdm
 
 def clean_text(text):
     text = str(text).lower().strip()
@@ -93,20 +92,21 @@ def fasttext_model(df_train, df_test):
 
     # Aplicando os embeddings
     print("Gerando embeddings FastText...")
-    df_train['ft_emb'] = df_train.search_text.apply(ft_embedding)
-    df_test['ft_emb'] = df_test.search_text.apply(ft_embedding)
+    df_train['ft_emb'] = df_train.search_text.apply(lambda x: ft_embedding(fasttext_model, x))
+    df_test['ft_emb'] = df_test.search_text.apply(lambda x: ft_embedding(fasttext_model, x))
 
     return fasttext_model
 
-def ft_embedding(text):
+# Corrigir a função ft_embedding para aceitar o modelo como parâmetro
+def ft_embedding(model, text):
     """Função para gerar embeddings com pesos adaptativos"""
     tokens = tokenize_business(text)
     vectors = []
     weights = []
     
     for i, token in enumerate(tokens):
-        if token in fasttext_model.wv:
-            vec = fasttext_model.wv[token]
+        if token in model.wv:
+            vec = model.wv[token]
             # Pesos adaptativos baseados nas características do token
             weight = 1.0
             
@@ -129,9 +129,10 @@ def ft_embedding(text):
         emb = np.sum(weighted_vectors, axis=0) / np.sum(weights)
         return emb / np.linalg.norm(emb)
     
-    return np.zeros(fasttext_model.vector_size)
+    return np.zeros(model.vector_size)
 
-def get_topk(user_input, uf=None, k=5, base_busca=None):
+# Corrigir a função get_topk para aceitar o modelo como parâmetro
+def get_topk(user_input, uf=None, k=5, base_busca=None, model=None):
     texto = tokenize_business(user_input)
     data = base_busca.copy()
     
@@ -139,14 +140,15 @@ def get_topk(user_input, uf=None, k=5, base_busca=None):
         data = data[data.uf == uf].reset_index(drop=True)    # verificar o valor de data
     
 
-    emb = ft_embedding(texto)
+    emb = ft_embedding(model, texto)
     similaridade = cosine_similarity([emb], list(data.ft_emb.values))[0]
    
     top_indices = similaridade.argsort()[::-1][:k]
 
     return pd.DataFrame(data.iloc[top_indices])
 
-def avaliar_modelo(df_teste, base_busca, batch_size=32):
+# Corrigir a função avaliar_modelo para aceitar o modelo como parâmetro
+def avaliar_modelo(df_teste, base_busca, model, batch_size=32):
     total = len(df_teste)
     top1 = 0
     top5 = 0
@@ -154,30 +156,29 @@ def avaliar_modelo(df_teste, base_busca, batch_size=32):
     # Pré-processamento dos alvos
     alvos = df_teste.search_text.apply(tokenize_business).values
     
-    with tqdm(total=total, desc=f'Avaliando modelo') as pbar:
-        for i in range(0, total, batch_size):
-            batch = df_teste.iloc[i:i+batch_size]
+    
+    for i in range(0, total, batch_size):
+        batch = df_teste.iloc[i:i+batch_size]
+        
+        for j, row in enumerate(batch.itertuples()):
+            entrada = row.user_input
+            uf = row.uf if hasattr(row, 'uf') else None
+            alvo = alvos[i+j]
             
-            for j, row in enumerate(batch.itertuples()):
-                entrada = row.user_input
-                uf = row.uf if hasattr(row, 'uf') else None
-                alvo = alvos[i+j]
-                
-                # Obtém os top-k resultados
-                resultados = get_topk(entrada, uf, k=5, base_busca=base_busca)
-                pred_empresas = resultados.search_text.apply(tokenize_business).values
-                                
-                # Verifica Top-1 (match exato ou alta similaridade para primeira predição)
-                if fuzz.ratio(alvo, pred_empresas[0]) > 80:  
-                    top1 += 1
-                
-                # Verifica Top-5 (match aproximado em qualquer posição)
-                for pred in pred_empresas:
-                    if fuzz.ratio(alvo, pred) > 80:
-                        top5 += 1
-                        break
-                
-                pbar.update(1)
+            # Obtém os top-k resultados
+            resultados = get_topk(entrada, uf, k=5, base_busca=base_busca, model=model)
+            pred_empresas = resultados.search_text.apply(tokenize_business).values
+                            
+            # Verifica Top-1 (match exato ou alta similaridade para primeira predição)
+            if fuzz.ratio(alvo, pred_empresas[0]) > 80:  
+                top1 += 1
+            
+            # Verifica Top-5 (match aproximado em qualquer posição)
+            for pred in pred_empresas:
+                if fuzz.ratio(alvo, pred) > 80:
+                    top5 += 1
+                    break
+            
     
     print(f'\nModelo: FastText')
     print(f'Top-1: {top1/total:.2%} | Top-5: {top5/total:.2%}')

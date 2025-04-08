@@ -1,34 +1,37 @@
-# Imports
+import os
 import pandas as pd
 import nltk
 from sklearn.model_selection import train_test_split
-from utils.functions import avaliar_modelo, clean_text, ft_embedding, get_topk, prepare_search_text, tokenize_business
+from utils.functions import avaliar_modelo, clean_text, prepare_search_text, fasttext_model
 
 nltk.download('punkt')
-    
-df = pd.read_parquet('dados/train.parquet')
-df = df[['user_input', 'uf', 'razaosocial', 'nome_fantasia']].reset_index(drop=True)
+nltk.download('stopwords')
 
+def main():
+    # Construir caminho absoluto para o arquivo de dados
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_path = os.path.join(base_dir, 'dados', 'train.parquet')
 
-# Criação do campo de texto e do target
-df['target_empresa'] = (df.razaosocial.fillna('') + ' ' + df.nome_fantasia.fillna('')).apply(clean_text)
+    # Carregar o dataset
+    df = pd.read_parquet(data_path)
+    df = df[['user_input', 'uf', 'razaosocial', 'nome_fantasia']].reset_index(drop=True)
 
-# Separação treino/teste
-df_train, df_test = train_test_split(df, 
-                                     test_size=0.2, 
-                                     random_state=42)
+    # Criar o campo de texto e o target
+    df['target_empresa'] = (df.razaosocial.fillna('') + ' ' + df.nome_fantasia.fillna('')).apply(clean_text)
 
-# Aplica o prepare_search_text em todos os DataFrames
-df_train['search_text'] = df_train.apply(prepare_search_text, axis=1)
-df_test['search_text'] = df_test.apply(prepare_search_text, axis=1)
+    # Separar treino/teste
+    df_train, df_test = train_test_split(df, test_size=0.2, random_state=42)
 
+    # Aplicar o prepare_search_text
+    df_train['search_text'] = df_train.apply(prepare_search_text, axis=1)
+    df_test['search_text'] = df_test.apply(prepare_search_text, axis=1)
 
+    # Treinar o modelo FastText
+    model = fasttext_model(df_train, df_test)
 
+    # Avaliar o modelo
+    resultados = avaliar_modelo(df_test, base_busca=df_train, model=model)
+    print("Resultados da avaliação:", resultados)
 
-
-# Testando um um df menor
-df_test_test = df_test[1000:2000]
-
-# Avaliando o modelo
-avaliar_modelo(df_test_test, base_busca=df_train)
-get_topk('braspres', uf='SP', base_busca=df_test)
+if __name__ == '__main__':
+    main()
