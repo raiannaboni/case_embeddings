@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import re
 import unicodedata
+from gensim.models import FastText
 from nltk.tokenize import word_tokenize
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import fuzz
@@ -72,6 +73,30 @@ def tokenize_business(text):
             else:
                 tokens.extend(word_tokenize(word))
     return tokens
+
+def fasttext_model(df_train, df_test):
+    
+    corpus_ft = [tokenize_business(text) for text in df_train.search_text]
+
+    fasttext_model = FastText(
+        sentences=corpus_ft,
+        vector_size=300,
+        window=5, 
+        min_count=1,
+        sg=1,
+        negative=15,  
+        epochs=50,
+        min_n=2,
+        max_n=6
+        )
+
+
+    # Aplicando os embeddings
+    print("Gerando embeddings FastText...")
+    df_train['ft_emb'] = df_train.search_text.apply(ft_embedding)
+    df_test['ft_emb'] = df_test.search_text.apply(ft_embedding)
+
+    return fasttext_model
 
 def ft_embedding(text):
     """Função para gerar embeddings com pesos adaptativos"""
