@@ -1,18 +1,17 @@
 # Imports
 import pandas as pd
-import numpy as np
-import re
-import unicodedata
 import nltk
-from nltk.tokenize import word_tokenize
 from gensim.models import FastText
-from sklearn.metrics.pairwise import cosine_similarity
-from fuzzywuzzy import fuzz
 from sklearn.model_selection import train_test_split
-from tqdm.notebook import tqdm
+from utils import avaliar_modelo, clean_text, ft_embedding, get_topk, prepare_search_text, tokenize_business
 
-from src.utils import avaliar_modelo, clean_text, ft_embedding, prepare_search_text, tokenize_business
-nltk.download('punkt')
+# Download necessário dos recursos NLTK
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('averaged_perceptron_tagger')
+    nltk.download('universal_tagset')
 
 
 df = pd.read_parquet('dados/train.parquet')
@@ -59,3 +58,4 @@ df_test_test = df_test[1000:2000]
 
 # Avaliando o modelo
 avaliar_modelo(df_test_test, base_busca=df_train)
+get_topk('braspres', uf='SP', base_busca=df_test)

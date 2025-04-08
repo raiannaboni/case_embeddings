@@ -1,3 +1,13 @@
+# Imports
+import pandas as pd
+import numpy as np
+import re
+import unicodedata
+from nltk.tokenize import word_tokenize
+from sklearn.metrics.pairwise import cosine_similarity
+from fuzzywuzzy import fuzz
+from tqdm.notebook import tqdm
+
 def clean_text(text):
     text = str(text).lower().strip()
     text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
