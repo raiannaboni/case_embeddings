@@ -1,8 +1,8 @@
 pandas
-PyYAML
-openai
-sentence-transformers
-torch
-torchaudio
-torchvision
+numpy
+nltk
+gensim
+scikit-learn
+fuzzywuzzy
 tqdm
+
