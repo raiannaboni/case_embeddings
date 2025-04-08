@@ -13,44 +13,17 @@ Sistema de busca semântica que encontra empresas a partir de texto livre, utili
 ## Estrutura do Projeto
 ```
 case_embeddings/
+├── dados/
+│   └── train.parquet              # Dataset de treino
 ├── src/
-│   ├── main.py            # Script principal
-│   └── utils.py           # Funções auxiliares
-├── fasttext_model.ipynb   # Notebook com implementação do modelo
-└── requirements.txt       # Dependências do projeto
-```
-
-## Tecnologias Utilizadas
-- Python 3.11
-- FastText (Gensim)
-- pandas
-- numpy
-- scikit-learn
-- NLTK
-- FuzzyWuzzy
-
-## Instalação
-
-### Pré-requisitos
-- Python 3.11+
-- pip
-
-### Configuração
-1. Clone o repositório:
-```bash
-git clone [url-do-repositorio]
-cd case_embeddings
-```
-
-2. Instale as dependências:
-```bash
-pip install -r requirements.txt
-```
-
-3. Baixe os recursos do NLTK:
-```python
-import nltk
-nltk.download('punkt')
+│   ├── main.py                    # Script principal
+│   └── utils/
+│       └── functions.py           # Funções auxiliares
+├── notebooks/
+    ├── documentacao_solucao.ipynb # Documentação detalhada
+│   ├── fasttext_model.ipynb       # Implementação 
+│   └── testes.ipynb               # Testes e experimentos
+└── requirements.txt               # Dependências do projeto
 ```
 
 ## Como Usar
@@ -93,63 +66,5 @@ O modelo é avaliado usando duas métricas principais:
 - **Top-1**: % de acerto na primeira sugestão
 - **Top-5**: % de acerto entre as 5 primeiras sugestões
 
-## Detalhes da Implementação
-
-### FastText Training
-```python
-fasttext_model = FastText(
-    sentences=corpus_ft,
-    vector_size=300,     # Dimensão dos vetores
-    window=5,            # Janela de contexto
-    min_count=1,         # Inclui todas as palavras
-    sg=1,               # Skip-gram
-    negative=15,        # Negative sampling
-    epochs=50,          # Número de épocas
-    min_n=2,           # Tamanho mínimo de n-grams
-    max_n=6            # Tamanho máximo de n-grams
-)
-```
-
-### Embeddings com Pesos Adaptativos
-```python
-def ft_embedding(text):
-    tokens = tokenize_business(text)
-    vectors = []
-    weights = []
-    
-    for i, token in enumerate(tokens):
-        if token in fasttext_model.wv:
-            vec = fasttext_model.wv[token]
-            weight = 1.0
-            
-            # Primeiras palavras são mais importantes
-            if i < 2:
-                weight *= 1.2
-            
-            # Tokens curtos têm peso menor
-            if len(token) <= 2:
-                weight *= 0.6
-                
-            vectors.append(vec)
-            weights.append(weight)
-    
-    return weighted_average(vectors, weights)
-```
-
-## Performance
-
-Após validação cruzada em um conjunto de teste com 4000 amostras:
-- **Top-1 Accuracy**: 82.5%
-- **Top-5 Accuracy**: 89.3%
-
-O modelo apresenta excelente performance mesmo com:
-- Variações de escrita (exemplo: "itau" vs "itaú")
-- Erros de digitação comuns
-- Uso de abreviações
-- Diferentes formatos de nome (razão social vs nome fantasia)
-
-## Licença
-MIT License
-
 ## Autor
-[Case Data Science - Embeddings]
+Raianna Boni
