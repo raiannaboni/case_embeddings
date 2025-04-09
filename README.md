@@ -66,5 +66,9 @@ O modelo é avaliado usando duas métricas principais:
 - **Top-1**: % de acerto na primeira sugestão
 - **Top-5**: % de acerto entre as 5 primeiras sugestões
 
+## Resultados
+- **Top-1**: 80,8%
+- **Top-5**: 80,92%
+
 ## Autora
 Raianna Boni
